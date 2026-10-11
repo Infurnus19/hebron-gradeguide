@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hebron GradeGuide - Explainable Grade Selector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-badge">H</div>
+      <div class="brand-text">
+        <span class="brand-title">HEBRON</span>
+        <span class="brand-subtitle">GradeGuide™</span>
+      </div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-tab active" onclick="switchNav('selector', event)">Application Match</button>
+      <button class="nav-tab" onclick="switchNav('database', event)">Compare Grades</button>
+      <button class="nav-tab nav-tab-highlight" onclick="switchNav('am_cad', event)">✦ 3D Printing & CAD Lab</button>
+      <button class="nav-tab" onclick="switchNav('expert', event)">Expert Review</button>
+      <button class="nav-tab" onclick="switchNav('enquiry', event)">Sales Enquiry</button>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-outline" onclick="openEnquiryModal()">Export Enquiry</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    
+    <!-- Hero / Headline Section -->
+    <div class="hero-section">
+      <h1 class="hero-title">Match the application. <span class="highlight">Explain the choice.</span></h1>
+      <p class="hero-subtitle">Convert engineering requirements into verified Hebron stainless steel shortlists with transparent trade-offs.</p>
+    </div>
+
+    <!-- Mode Switcher & Entry Points -->
+    <div class="mode-container">
+      <div class="mode-toggle">
+        <button id="guidedBtn" class="mode-btn active" onclick="setMode('guided')">
+          <span class="icon">🧭</span> Guided Mode (Commercial / Fabricators)
+        </button>
+        <button id="engBtn" class="mode-btn" onclick="setMode('engineering')">
+          <span class="icon">⚙️</span> Engineering Mode (Specs & Numerical)
+        </button>
+      </div>
+    </div>
+
+    <!-- Dual Layout: Input Panel + Results Display -->
+    <div class="main-grid">
+
+      <!-- LEFT: Input Panel -->
+      <section class="card input-card">
+        
+        <!-- Guided Mode Inputs -->
+        <div id="guidedInputs">
+          <div class="section-badge">GUIDED MODE</div>
+          <h2 class="card-title">What are you making?</h2>
+          <p class="card-desc">Enter an application or product to see suitable Hebron grades, trade-offs, and compliance.</p>
+          
+          <div class="form-group">
+            <label>Application / Component</label>
+            <div class="input-with-button">
+              <input type="text" id="appInput" placeholder="e.g. Car, Exhaust system, Coastal railing, Chemical tank" value="Car">
+              <button class="btn btn-primary" onclick="analyzeNaturalLanguage()">Analyze</button>
+            </div>
+          </div>
+
+          <div class="guidance-chips">
+            <span class="chip" onclick="quickFill('Car', 'outdoor', 120)">🚗 Automotive Trim</span>
+            <span class="chip" onclick="quickFill('Exhaust', 'exhaust', 650)">🔥 Exhaust Heat Zones</span>
+            <span class="chip" onclick="quickFill('Marine Balustrade', 'marine', 45)">🌊 Marine / Coastal</span>
+            <span class="chip" onclick="quickFill('Food Storage Tank', 'indoor', 80)">🥛 Food & Beverage</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Exposure Condition</label>
+              <select id="exposureSelect">
+                <option value="indoor">Indoor dry / sheltered</option>
+                <option value="outdoor" selected>Outdoor road / atmospheric exposure</option>
+                <option value="marine">Marine / coastal salt spray</option>
+                <option value="chemical">Aggressive chemical / acid wash</option>
+                <option value="exhaust">High temperature exhaust stream</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Continuous Temp (°C)</label>
+              <input type="number" id="tempInput" value="40" min="-50" max="1200">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Key Requirements</label>
+            <div class="checkbox-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkChloride"> Salt / Chloride Contact
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkForming" checked> Cold Forming / Bending
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkWelding" checked> Welding Required
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkAcid"> Direct Acid Contact
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engineering Mode Inputs -->
+        <div id="engineeringInputs" style="display: none;">
+          <div class="section-badge badge-eng">ENGINEERING MODE</div>
+          <h2 class="card-title">Precise Parametric Constraints</h2>
+          <p class="card-desc">Enter numeric thresholds, product forms, and standard design specifications.</p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Min Yield Strength (MPa)</label>
+              <input type="number" id="minYieldInput" value="230" min="0">
+            </div>
+            <div class="form-group">
+              <label>Min Tensile Strength (MPa)</label>
+              <input type="number" id="minTensileInput" value="500" min="0">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Design Service Temp (°C)</label>
+              <input type="number" id="engTempInput" value="45" min="-196" max="1200">
+            </div>
+            <div class="form-group">
+              <label>Corrosion Standard</label>
+              <select id="engStandard">
+                <option value="astm">ASTM A240 Specification</option>
+                <option value="en">EN 10088 European Standard</option>
+                <option value="nace">NACE MR0175 (Sour Service)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Priority Sliders (Both Modes) -->
+        <div class="priority-section">
+          <div class="priority-header">
+            <h4>Trade-off Priorities</h4>
+            <span class="subtext">Adjust to see dynamic recommendation updates</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-row">
+              <span>Corrosion Resistance</span>
+              <input type="range" id="prioCorrosion" min="1" max="5" value="4" oninput="runEvaluation()">
+              <span class="prio-val" id="valCorrosion">4</span>
+            </div>
+            <div class="slider-row">
+              <span>Budget / Low Cost Preference</span>
+              <input type="range" id="prioCost" min="1" max="5" value="3" oninput="runEvaluation()">
+              <span class="prio-val" id="valCost">3</span>
+            </div>
+            <div class="slider-row">
+              <span>Yield Strength</span>
+              <input type="range" id="prioStrength" min="1" max="5" value="3" oninput="runEvaluation()">
+              <span class="prio-val" id="valStrength">3</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="runEvaluation()">Compute Recommendations</button>
+
+      </section>
+
+      <!-- RIGHT: Results & Shortlist -->
+      <section class="results-container">
+        
+        <div class="results-header">
+          <div>
+            <span class="badge-tag">TOP SHORTLIST</span>
+            <h2 id="resultsHeadline">Recommended Hebron Grades</h2>
+          </div>
+          <div class="status-summary" id="statusSummary">
+            Evaluating database...
+          </div>
+        </div>
+
+        <!-- Top 3 Shortlist Cards -->
+        <div id="recommendationCards" class="cards-stack">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Transparent Logic & Trade-offs -->
+        <div class="card logic-card" id="logicCard">
+          <div class="logic-header">
+            <span class="icon">🔍</span>
+            <h3>Transparent Recommendation Logic</h3>
+          </div>
+          <div class="logic-body">
+            <p><strong>1. Mandatory fit:</strong> Grades must survive the stated exposure, operating temperature, and fabrication route without risk of brittle failure or rapid pitting.</p>
+            <p><strong>2. Preference ranking:</strong> Scores weighted according to corrosion, forming demands, strength, and relative material cost.</p>
+            <p><strong>3. Trade-off shown:</strong> Transparently presents what improves and what becomes more expensive with each alternative.</p>
+            <div id="dynamicTradeOffs" class="tradeoff-box"></div>
+          </div>
+        </div>
+
+        <!-- Excluded Grades Diagnostic -->
+        <div class="card excluded-card">
+          <details>
+            <summary class="excluded-summary">
+              <span>Audit Trail: Excluded Grades & Reasons (<span id="excludedCount">0</span>)</span>
+              <span class="subtext">Click to inspect unsuited materials</span>
+            </summary>
+            <div id="excludedList" class="excluded-content">
+              <!-- Dynamically populated -->
+            </div>
+          </details>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- Interactive 2-Grade Visual Comparison & Stress-Strain Analysis Section -->
+    <section id="compareSection" class="card full-width-card" style="display: none; margin-top: 1rem;">
+      <div class="card-header-flex">
+        <div>
+          <span class="section-badge">INTERACTIVE METALLURGY LAB</span>
+          <h2 style="margin-top: 0.35rem;">Dual-Grade Comparative Visualizer & Stress-Strain Curves</h2>
+          <p class="card-desc">Select any two Hebron metals or alloys to generate analytical stress-strain curves, radar performance profiles, and property trade-offs.</p>
+        </div>
+        <button class="btn btn-outline" onclick="switchNav('selector')">Back to Selector</button>
+      </div>
+
+      <!-- Selector Bar -->
+      <div class="compare-selector-bar">
+        <div class="compare-select-col">
+          <label style="color: #38bdf8; font-weight: 700;">Grade A (Primary)</label>
+          <select id="compareGradeA" onchange="updateComparisonGraphs()"></select>
+        </div>
+        <div class="vs-circle">VS</div>
+        <div class="compare-select-col">
+          <label style="color: #f97316; font-weight: 700;">Grade B (Comparison)</label>
+          <select id="compareGradeB" onchange="updateComparisonGraphs()"></select>
+        </div>
+        <button class="btn btn-primary" onclick="updateComparisonGraphs()">Generate Graphs</button>
+      </div>
+
+      <!-- Side-by-Side Spec Summary -->
+      <div class="compare-metrics-grid" id="compareMetricsGrid">
+        <!-- Dynamically rendered -->
+      </div>
+
+      <!-- Dual Graphs Layout -->
+      <div class="charts-grid">
+        <div class="chart-container-card">
+          <div class="chart-title-bar">
+            <h3>📈 Engineering Stress-Strain Constitutive Curves (\(\sigma - \epsilon\))</h3>
+            <span class="subtext">Ramberg-Osgood Plasticity Formulation</span>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas id="stressStrainChart"></canvas>
+          </div>
+          <p class="chart-footnote">*Curves modeled using continuous non-linear Ramberg-Osgood constitutive formulation calibrated to 0.2% offset yield (\(R_{p0.2}\)), ultimate tensile strength (\(R_m\)), and total elongation (\(A_{50}\)).</p>
+        </div>
+
+        <div class="chart-container-card">
+          <div class="chart-title-bar">
+            <h3>🎯 Multi-Attribute Performance Radar</h3>
+            <span class="subtext">Strength, Corrosion, Heat, Formability & Economy</span>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas id="radarChart"></canvas>
+          </div>
+          <p class="chart-footnote">*Scores normalized (0–100) across PREN pitting resistance, thermal limit, mechanical yield, forming ductility, and relative cost economy.</p>
+        </div>
+      </div>
+
+      <!-- Complete Data Table (Collapsible below graphs) -->
+      <div style="margin-top: 2rem;">
+        <details>
+          <summary class="excluded-summary" style="padding: 0.75rem 0;">
+            <span style="font-size: 1rem; color: #fff;">📋 View Complete Catalog Specifications Matrix (All 12 Grades)</span>
+            <span class="subtext">Expand full table</span>
+          </summary>
+          <div class="table-responsive" style="margin-top: 1rem;">
+            <table class="data-table" id="matrixTable">
+              <thead>
+                <tr>
+                  <th>Grade</th>
+                  <th>Category</th>
+                  <th>Yield (MPa)</th>
+                  <th>Tensile (MPa)</th>
+                  <th>Max Temp</th>
+                  <th>PREN</th>
+                  <th>Corrosion</th>
+                  <th>Formability</th>
+                  <th>Cost Band</th>
+                  <th>Reference Standards</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="matrixTableBody">
+                <!-- Populated via API -->
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 3D PRINTING & CAD SERVICES LAB SECTION -->
+    <section id="amCadSection" class="card full-width-card" style="display: none; margin-top: 1rem;">
+      <div class="card-header-flex">
+        <div>
+          <span class="section-badge badge-am">ADDITIVE MANUFACTURING & CAD LAB</span>
+          <h2 style="margin-top: 0.35rem;">Industrial 3D Printing & Engineering CAD Services</h2>
+          <p class="card-desc">Rapid prototyping to series additive manufacturing: metal DMLS/SLM, aerospace superalloys, and high-performance composites with automated DfAM validation.</p>
+        </div>
+        <button class="btn btn-outline" onclick="switchNav('selector', event)">Back to Selector</button>
+      </div>
+
+      <!-- Prominent CAD Design Service Banner -->
+      <div class="cad-hire-banner">
+        <div class="cad-hire-info">
+          <div class="cad-hire-tag">💡 BESPOKE ENGINEERING & MODELING</div>
+          <h3 class="cad-hire-title">Do you need a CAD design?</h3>
+          <p class="cad-hire-desc">Don't have a 3D model yet or need design adjustments? Our dedicated CAD engineering team provides custom 3D modeling, parametric revisions, reverse engineering, and DfAM optimization.</p>
+        </div>
+        <div class="cad-hire-action">
+          <button class="btn btn-cad-contact" onclick="openCADContactModal()">
+            <span class="icon">✉️</span> Contact Us for CAD Design
+          </button>
+          <span class="cad-hire-subtext">Hourly & fixed-quote modeling packages</span>
+        </div>
+      </div>
+      <div class="am-grid">
+        
+        <!-- LEFT: CAD Upload & Project Configuration -->
+        <div class="am-config-card">
+          <h3 class="card-subtitle">1. CAD File & Service Selection</h3>
+          
+          <!-- Drag & Drop Zone -->
+          <div class="cad-dropzone" id="cadDropzone" onclick="document.getElementById('cadFileInput').click()">
+            <input type="file" id="cadFileInput" style="display: none;" accept=".step,.stp,.stl,.iges,.igs,.obj,.sldprt" onchange="handleFileSelect(event)">
+            <div class="dropzone-icon">📐</div>
+            <div class="dropzone-text" id="dropzoneText">
+              <strong>Drag & drop your CAD model here</strong>
+              <span class="subtext">Supports .STEP, .STP, .STL, .IGES, .SLDPRT (Max 150 MB)</span>
+            </div>
+            <div class="file-loaded-badge" id="fileLoadedBadge" style="display: none;">
+              ✓ <span id="loadedFileName">model.step</span> (<span id="loadedFileSize">2.4 MB</span>)
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <label>Required Engineering Service</label>
+            <select id="cadServiceType" onchange="recalculateAMQuote()">
+              <option value="Production 3D Printing (Metal / Polymer)">Production 3D Printing (DMLS / SLS)</option>
+              <option value="DfAM & Topology Optimization (Lightweighting)">DfAM & Topology Optimization (Generative Design)</option>
+              <option value="Reverse Engineering & 3D Scanning">Reverse Engineering & High-Precision 3D Scanning</option>
+              <option value="Rapid Tooling & Conformal Cooling Inserts">Rapid Tooling & Conformal Cooling Inserts</option>
+            </select>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Estimated Volume (\(\text{cm}^3\))</label>
+              <input type="number" id="amVolumeInput" value="45" min="1" max="10000" oninput="recalculateAMQuote()">
+            </div>
+            <div class="form-group">
+              <label>Batch Quantity (Parts)</label>
+              <input type="number" id="amQtyInput" value="5" min="1" max="5000" oninput="recalculateAMQuote()">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Selected Additive Material</label>
+            <select id="amMaterialSelect" onchange="onAMMaterialChange()">
+              <!-- Populated dynamically from API -->
+            </select>
+          </div>
+
+          <!-- Post-Processing Add-ons -->
+          <div class="form-group">
+            <label>Post-Processing & Certifications</label>
+            <div class="checkbox-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkHIP" onchange="recalculateAMQuote()"> Hot Isostatic Pressing (HIP)
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkStressRelief" checked onchange="recalculateAMQuote()"> Stress-Relief Anneal
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkCNCPost" onchange="recalculateAMQuote()"> CNC Mating Surface Machining
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkSurfacePolish" onchange="recalculateAMQuote()"> Bead Blasting / Polishing
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: Live Instant Estimate & Material Intelligence -->
+        <div class="am-intelligence-card">
+          
+          <!-- Live Quote Widget -->
+          <div class="instant-estimate-box">
+            <div class="est-header">
+              <span>INDICATIVE COMMERCIAL ESTIMATE</span>
+              <span class="badge-am-green">LIVE DfAM PRICING</span>
+            </div>
+            <div class="est-price-row">
+              <div class="est-amount" id="amTotalEst">$342.50</div>
+              <div class="est-breakdown" id="amUnitBreakdown">$68.50 / part • Lead time: 3–5 days</div>
+            </div>
+            <p class="est-note">Includes automated geometry pre-check, machine prep, and standard deburring.</p>
+            <button class="btn btn-primary btn-block" style="margin-top: 1rem;" onclick="openCADQuoteModal()">Submit CAD for Engineering Validation</button>
+          </div>
+
+          <!-- Selected Material Technical Spotlight -->
+          <div class="mat-spotlight-card" id="amMaterialSpotlight">
+            <!-- Dynamically populated -->
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Full Additive Materials Catalog Section -->
+      <div style="margin-top: 2rem;">
+        <div class="section-title-row">
+          <h3>Additive Manufacturing Materials Library (11+ Industrial Powders & Polymers)</h3>
+          <span class="subtext">DMLS / LPBF Metal Powders, Superalloys, SLS Nylons, PEEK & Carbon Composites</span>
+        </div>
+        <div class="am-cards-grid" id="amMaterialsCardsGrid">
+          <!-- Populated from API -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Sales Enquiry Modal -->
+  <div id="enquiryModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Commercial Pathway: Sales Enquiry Pack</h2>
+        <span class="close-btn" onclick="closeEnquiryModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Export selected Hebron grade and engineering requirements directly to the Hebron sales and authorized dealer network.</p>
+        
+        <form id="enquiryForm" onsubmit="submitEnquiry(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Contact Name *</label>
+              <input type="text" id="enqName" required placeholder="e.g. Ramesh Sharma">
+            </div>
+            <div class="form-group">
+              <label>Company / Organization *</label>
+              <input type="text" id="enqCompany" required placeholder="e.g. Apex Precision Engineering">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Email Address *</label>
+              <input type="email" id="enqEmail" required placeholder="e.g. procurement@apex.com">
+            </div>
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" id="enqPhone" placeholder="+91 98765 43210">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Selected Hebron Grade</label>
+              <select id="enqGrade">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Product Form</label>
+              <select id="enqForm">
+                <option value="Cold Rolled Coil">Cold Rolled Coil</option>
+                <option value="Hot Rolled Sheet">Hot Rolled Sheet</option>
+                <option value="Precision Plate">Precision Plate</option>
+                <option value="Round Bar">Round Bar</option>
+                <option value="Welded Tube">Welded Tube</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Estimated Quantity (Metric Tons)</label>
+              <input type="number" id="enqQty" value="10" min="0.5" step="0.5" required>
+            </div>
+            <div class="form-group">
+              <label>Target Thickness (mm)</label>
+              <input type="number" id="enqThickness" value="2.0" step="0.1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Specific Fabrication or Delivery Notes</label>
+            <textarea id="enqNotes" rows="3" placeholder="Provide surface finish specifications (e.g. 2B, No. 4, BA) or slitting details..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeEnquiryModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Enquiry Pack & Dispatch</button>
+          </div>
+        </form>
+
+        <div id="enquirySuccess" style="display: none;" class="success-box">
+          <div class="success-icon">✓</div>
+          <h3>Enquiry Pack Dispatched Successfully</h3>
+          <p id="enquiryRefText"></p>
+          <div id="enquiryDetailsJson" class="code-box"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CAD & Additive Quote Submission Modal -->
+  <div id="cadQuoteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Submit CAD for Additive Manufacturing & DfAM Review</h2>
+        <span class="close-btn" onclick="closeCADQuoteModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Your CAD geometry and specification will be routed directly to the Hebron Additive Engineering & Production Lab for geometry verification and binding quotation.</p>
+
+        <form id="cadQuoteForm" onsubmit="submitCADQuote(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Contact Name *</label>
+              <input type="text" id="cadClientName" required placeholder="e.g. Dr. Jennifer Adams">
+            </div>
+            <div class="form-group">
+              <label>Organization / Department *</label>
+              <input type="text" id="cadOrg" required placeholder="e.g. AeroDynamics Systems Lab">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Corporate Email *</label>
+              <input type="email" id="cadEmail" required placeholder="e.g. j.adams@aerodynamics.com">
+            </div>
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" id="cadPhone" placeholder="+1 (555) 349-2041">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Attached CAD Model</label>
+            <input type="text" id="cadModalFileName" readonly style="background: var(--bg-card-subtle);" value="impeller_bracket_rev2.step">
+          </div>
+
+          <div class="form-group">
+            <label>Additional Engineering Requirements or Surface Tolerances</label>
+            <textarea id="cadNotes" rows="3" placeholder="Specify critical bearing fit tolerances (e.g. ISO H7), non-destructive testing (NDT / CT scan), or surface roughness (Ra < 1.6 µm)..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeCADQuoteModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Dispatch CAD Dossier to Lab</button>
+          </div>
+        </form>
+
+        <div id="cadQuoteSuccess" style="display: none;" class="success-box">
+          <div class="success-icon">✓</div>
+          <h3>CAD & AM Engineering Dossier Dispatched</h3>
+          <p id="cadQuoteRefText"></p>
+          <div id="cadQuoteDetailsJson" class="code-box"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated CAD Design & Modeling Contact Modal -->
+  <div id="cadContactModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Custom CAD Design & Engineering Consultation</h2>
+        <span class="close-btn" onclick="closeCADContactModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Let us design your parts from scratch or refine your existing concepts into production-ready 3D CAD files (.STEP, .STL, native parametric assemblies).</p>
+
+        <form id="cadContactForm" onsubmit="submitCADContact(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Your Name *</label>
+              <input type="text" id="contactClientName" required placeholder="e.g. David Miller">
+            </div>
+            <div class="form-group">
+              <label>Company / Project Name</label>
+              <input type="text" id="contactOrg" placeholder="e.g. Miller Innovations">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Email Address *</label>
+              <input type="email" id="contactEmail" required placeholder="e.g. david@example.com">
+            </div>
+            <div class="form-group">
+              <label>Phone / WhatsApp Number</label>
+              <input type="tel" id="contactPhone" placeholder="+91 98765 43210 or international">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>CAD Design Scope</label>
+              <select id="contactDesignScope">
+                <option value="New 3D CAD Design from Scratch / Hand Sketches">New 3D CAD Design from Hand Sketches / Idea</option>
+                <option value="Reverse Engineering from 2D Drawings / Physical Part">Reverse Engineering from 2D Drawings / Scan</option>
+                <option value="Design for Additive Manufacturing (DfAM) Optimization">DfAM & Lightweighting (Lattice / Topology)</option>
+                <option value="Model Repair / Wall Thickness Adjustment">Model Repair / Wall Thickness Adjustment</option>
+                <option value="Full Production Tooling & Mold Design">Tooling / Injection Mold CAD Design</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Delivery Timeline</label>
+              <select id="contactTimeline">
+                <option value="Urgent (24-48 Hours)">Urgent (24–48 Hours)</option>
+                <option value="Standard (3-5 Days)" selected>Standard (3–5 Days)</option>
+                <option value="Flexible (1-2 Weeks)">Flexible (1–2 Weeks)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Project Details & Design Brief *</label>
+            <textarea id="contactBrief" rows="4" required placeholder="Describe your product idea, key dimensions, assembly requirements, intended manufacturing method (e.g. 3D printing, CNC, sheet metal), and any specific constraints..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeCADContactModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">Send Message & Request Quote</button>
+          </div>
+        </form>
+
+        <div id="cadContactSuccess" style="display: none;" class="success-box">
+          <div class="success-icon">✓</div>
+          <h3>CAD Design Request Received</h3>
+          <p id="cadContactRefText"></p>
+          <div id="cadContactDetailsJson" class="code-box"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

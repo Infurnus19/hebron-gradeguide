@@ -17,12 +17,23 @@ from fastapi.staticfiles import StaticFiles
 
 from materials_db import HEBRON_GRADES, HEBRON_AM_MATERIALS
 from recommendation_engine import RecommendationEngine
+from firebase_service import (
+    init_firebase,
+    save_sales_enquiry,
+    save_cad_quote,
+    save_cad_contact,
+    get_db
+)
 
 app = FastAPI(
     title="Hebron GradeGuide API",
     description="Explainable Stainless Steel & Additive Materials Selection Engine for Hebron Engineering",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+def startup_event():
+    init_firebase()
 
 app.add_middleware(
     CORSMiddleware,
@@ -231,6 +242,8 @@ def create_sales_enquiry(enquiry: SalesEnquiryRequest):
             "Sample dispatch or technical clarification scheduled."
         ]
     }
+    # Persist lead to Firestore
+    save_sales_enquiry(enquiry_pack)
     return enquiry_pack
 
 @app.get("/api/am-materials")
@@ -256,7 +269,7 @@ def create_cad_quote(quote: CADQuoteRequest):
     post_proc_fee = len(quote.post_processing) * 25.0
     total_est = round((unit_mat_cost + post_proc_fee) * quote.quantity_parts + setup_fee, 2)
 
-    return {
+    quote_pack = {
         "quote_reference": ref_id,
         "status": "CAD_DfAM_REVIEW_QUEUED",
         "service_division": "Hebron Additive Engineering & CAD Solutions",
@@ -288,6 +301,9 @@ def create_cad_quote(quote: CADQuoteRequest):
             "Material test specimen (tensile coupon) available upon production request."
         ]
     }
+    # Persist lead to Firestore
+    save_cad_quote(quote_pack)
+    return quote_pack
 
 @app.post("/api/cad-contact")
 def create_cad_contact(contact: CADDesignContactRequest):
@@ -297,7 +313,7 @@ def create_cad_contact(contact: CADDesignContactRequest):
     """
     ref_id = f"HEB-CAD-DES-2026-{abs(hash(contact.client_name + contact.email)) % 100000:05d}"
     
-    return {
+    contact_pack = {
         "reference_id": ref_id,
         "status": "DESIGN_CONSULTATION_LOGGED",
         "service_division": "Hebron Bespoke CAD Design & Engineering Modeling",
@@ -317,6 +333,33 @@ def create_cad_contact(contact: CADDesignContactRequest):
             "Direct Slack / WhatsApp / Zoom collaboration link provided upon project commencement."
         ]
     }
+    # Persist lead to Firestore
+    save_cad_contact(contact_pack)
+    return contact_pack
+
+@app.get("/api/admin/submissions-summary")
+def get_submissions_summary():
+    """
+    Returns summary stats of submissions from Firestore.
+    """
+    client = get_db()
+    if not client:
+        return {"status": "firestore_not_configured", "counts": {"sales_enquiries": 0, "cad_quotes": 0, "cad_design_leads": 0}}
+    try:
+        def count_collection(name: str):
+            docs = client.collection(name).limit(50).stream()
+            return len(list(docs))
+
+        return {
+            "status": "connected",
+            "counts": {
+                "sales_enquiries": count_collection("sales_enquiries"),
+                "cad_quotes": count_collection("cad_quotes"),
+                "cad_design_leads": count_collection("cad_design_leads")
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

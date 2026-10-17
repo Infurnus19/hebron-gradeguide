@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse, Response
 
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_dir):
@@ -51,7 +51,32 @@ if os.path.exists(frontend_dir):
 
 @app.get("/")
 def root():
+    index_file = os.path.join(frontend_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
     return RedirectResponse(url="/app/index.html")
+
+@app.get("/robots.txt")
+def robots_txt():
+    content = "User-agent: *\nAllow: /\nSitemap: https://hebron-gradeguide.onrender.com/sitemap.xml\n"
+    return Response(content=content, media_type="text/plain")
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://hebron-gradeguide.onrender.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://hebron-gradeguide.onrender.com/app/index.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+</urlset>"""
+    return Response(content=xml, media_type="application/xml")
 
 
 engine = RecommendationEngine(HEBRON_GRADES)

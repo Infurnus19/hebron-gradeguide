@@ -56,6 +56,14 @@ def root():
         return FileResponse(index_file)
     return RedirectResponse(url="/app/index.html")
 
+@app.get("/style.css")
+def root_style():
+    return FileResponse(os.path.join(frontend_dir, "style.css"))
+
+@app.get("/app.js")
+def root_js():
+    return FileResponse(os.path.join(frontend_dir, "app.js"))
+
 @app.get("/robots.txt")
 def robots_txt():
     content = "User-agent: *\nAllow: /\nSitemap: https://hebron-gradeguide.onrender.com/sitemap.xml\n"
